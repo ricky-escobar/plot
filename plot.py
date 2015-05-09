@@ -1,14 +1,15 @@
 from math import sqrt, e, log, cos, pi, sin, ceil, atan, atan2
 from random import randint, choice
-from time import time, asctime
+from time import time
 from itertools import product
+
 from PIL import Image
 
-from light_sim import light_sim, Material, Vec
 from graph import Graph
 from polynomial import Polynomial
-from plot_help import colorcube, hilbert, lp, direct, rgb, argcmp, colors, diffquo, newton, vw6, frange, coloradd, \
-    mkdir, ViewWindow, vwB, init, vwA, gradient, rbow, writegif, colorscale, closest
+from plot_help import colorcube, hilbert, lp, direct, rgb, argcmp, colors, diffquo, newton, frange, coloradd, init, \
+    ViewWindow, gradient, rbow, writegif, colorscale, closest
+
 
 try:
     import numpy as np
@@ -26,13 +27,15 @@ def funcgraph(funclist, vw=ViewWindow(), colorlist=None, auto=False, filename="p
         colorlist = colors(len(funclist))
     for j in range(len(funclist)):
         f = funclist[j]
-        for i in range(vw.dimx - 1):
+        it = vw.xiterator()
+        x0 = it.next()
+        for x1 in it:
             if colorlist == "rainbow":
-                color = rbow(2 * pi * i / vw.dimx, 2)
+                color = rbow(x1, 2)
             else:
                 color = colorlist[j]
-            x0, x1 = vw.xpxcart(i), vw.xpxcart(i + 1)
             data.line((x0, f(x0)), (x1, f(x1)), color, add, avg)
+            x0 = x1
             if gif:
                 images.append(data.save("", False))
     if gif:
@@ -65,7 +68,6 @@ def param(xlist, ylist, vw=ViewWindow(), colorlist=None, auto=False, gif=False, 
     if colorlist is None:
         colorlist = colors(len(xlist))
     for i in range(len(xlist)):
-        # print i
         x = xlist[i]
         y = ylist[i]
         t = vw.tmin
@@ -568,68 +570,3 @@ def pict2graphpict(img, condition=None, treefunc="dfs", func="bfs", colorfunc="h
         (m, n) = (len(img), len(img[0]))
     g = Graph.gridmatrix(img)
     return graphpict(m, n, g, treefunc, func, colorfunc, gif, gifres, v0, v1, rand, permute, save)
-
-
-def triangle(x, y):
-    return 0 < y < 1.732 * (1 - abs(x))
-
-
-def disk(x, y):
-    return -1 < x < 1 and -1 < y < 1 and x ** 2 + y ** 2 < 1
-
-
-def lens(x, y):
-    return (x - .9) ** 2 + y ** 2 < 1 and (x + .9) ** 2 + y ** 2 < 1
-
-
-def ring(x, y):
-    return .81 < x * x + y * y < 1
-
-
-def div_lens(x, y):
-    return -.4 < x < .4 and -.75 < y < .75 and (x - 1.625) ** 2 + y ** 2 > 2.25 and (x + 1.625) ** 2 + y ** 2 > 2.25
-
-
-def sine(x, y):
-    return sin(2 * x) - 0.5 < y < sin(2 * x) + 0.5
-
-if __name__ == "__main__":
-    mkdir()
-    print "Execution began at " + asctime()
-
-    def test1():
-        light_sim(vw=vwB, run_time=100, spawn_time=100, origin=Vec(0, 1.9), v=Vec(0, -1).unit() / 20,
-                  mat=Material(triangle, 1.3), density=30, perp_width=.09, parallel_width=.09, gif=True, gifres=1)
-
-    def test2():
-        light_sim(vwB, 200, Vec(-.5, 1.0), Vec(0, -1).unit() / 20, Material(triangle, 1.7), 30, .09, .09, gif=True,
-                  gifres=1)
-
-    def test2a():
-        light_sim(vwB, 200, Vec(-.5, 1.0), Vec(0, -1).unit() / 40, Material(triangle, 1.5), 50, .05, .05, gif=True,
-                  gifres=2)
-
-    def test3():
-        light_sim(vw6, 100, Vec(0, 1.2), Vec(0, -1).unit() / 20, Material(disk, 1.6), 50, 2, .06)
-
-    def test3a():
-        light_sim(vw=vw6, run_time=130, spawn_time=5, origin=Vec(0, 1.2), v=Vec(0, -1) / 20, color_add=False,
-                  mat=Material(disk, 2.0), density=500, perp_width=2, parallel_width=.06, segregation=False)
-
-    def test4():
-        light_sim(vw6, 100, Vec(-1, 0), Vec(1, 0).unit() / 20, Material(lens, 1.5), 50, .75, .06, segregation=True)
-
-    def test5():
-        light_sim(vw6, 300, Vec(-.95, 0), Vec(0, -1).unit() / 20, Material(ring, 2.3), 50, .09, .06)
-
-    def test6():
-        light_sim(vw=vw6, run_time=70, spawn_time=8, origin=Vec(-1, .5), v=Vec(1, 0).unit() / 20,
-                  mat=Material(div_lens, 1.5), density=2000, perp_width=.01, parallel_width=.06, segregation=False)
-
-    def test7():
-        light_sim(vw=vwA, run_time=350, spawn_time=200, origin=Vec(-2.6, 0), v=Vec(1, 0).unit() / 20,
-                  mat=Material(sine, 1.7), density=50, perp_width=.5, parallel_width=.06)
-
-    graphpict(500, 500)
-
-    print "Execution ended at " + asctime()

@@ -15,9 +15,9 @@ except ImportError:
 from images2gif import writeGif
 
 
-direct = "C:\\Users\\Ricky\\Desktop\\"
+direct = "C:\\Users\\Ricky\\Desktop\\test\\"
 fileextension = '.png'
-SCREEN = win32gui is not None
+SCREEN = True and win32gui is not None
 if SCREEN:
     DC = win32gui.GetDC(0)
 
@@ -69,8 +69,8 @@ class PlotData(object):
         return plot
 
     def line0(self, (x1, y1), (x2, y2), color, add=False, avg=False):
-        x1, x2 = self.vw.cart2px((x1, x2))
-        y1, y2 = self.vw.cart2px((y1, y2))
+        x1, y1 = self.vw.cart2px((x1, y1))
+        x2, y2 = self.vw.cart2px((x2, y2))
         if abs(x2 - x1) > abs(y2 - y1):
             if x1 > x2:
                 (x1, y1), (x2, y2) = (x2, y2), (x1, y1)
@@ -89,8 +89,8 @@ class PlotData(object):
                             self.putpixel((x1 + (i - y1) * (x2 - x1) / (y2 - y1) + d, i + c), color, add, avg)
 
     def line(self, (x1, y1), (x2, y2), color, add=False, avg=False):
-        x1, x2 = self.vw.cart2px((x1, x2))
-        y1, y2 = self.vw.cart2px((y1, y2))
+        x1, y1 = self.vw.cart2px((x1, y1))
+        x2, y2 = self.vw.cart2px((x2, y2))
         t = self.vw.thick
         for c in range(-t, t + 1):
             for d in range(-t, t + 1):
@@ -135,13 +135,13 @@ class ViewWindow(object):
     def __init__(self, xmin=-10.0, xmax=10.0, ymin=-10.0, ymax=10.0, tmin=0.0, tmax=2 * pi, tstep=pi / 2500, dimx=500,
                  dimy=500,
                  thick=1, axisx=False, axisy=False):
-        self.xmin = xmin
-        self.xmax = xmax
-        self.ymin = ymin
-        self.ymax = ymax
-        self.tmin = tmin
-        self.tmax = tmax
-        self.tstep = tstep
+        self.xmin = float(xmin)
+        self.xmax = float(xmax)
+        self.ymin = float(ymin)
+        self.ymax = float(ymax)
+        self.tmin = float(tmin)
+        self.tmax = float(tmax)
+        self.tstep = float(tstep)
         self.dimx = dimx
         self.dimy = dimy
         self.thick = thick
@@ -192,17 +192,15 @@ class ViewWindow(object):
         return self.xmin <= x <= self.xmax and self.ymin <= y <= self.ymax
 
     def xpxcart(self, i):
-        return i * (self.xmax - self.xmin + 0.0) / self.dimx + self.xmin
+        return i * float(self.xmax - self.xmin) / self.dimx + self.xmin
 
     def xcartpx(self, x):
-        # if self.inwindow((x,self.ymin)):
         return int(round(self.dimx * (x - self.xmin) / (self.xmax - self.xmin)))
 
     def ypxcart(self, j):
-        return self.ymax - j * (self.ymax - self.ymin + 0.0) / self.dimy
+        return self.ymax - j * float(self.ymax - self.ymin) / self.dimy
 
     def ycartpx(self, y):
-        # if self.inwindow((self.xmin,y)):
         return int(round(self.dimy * (self.ymax - y) / (self.ymax - self.ymin)))
 
     def px2cart(self, (i, j)):
@@ -220,6 +218,10 @@ class ViewWindow(object):
         for j in xrange(self.dimy):
             for i in xrange(self.dimx):
                 yield self.px2cart((i, j))
+
+    def xiterator(self):
+        for i in xrange(self.dimx):
+            yield self.xpxcart(i)
 
     def complexiterator(self):
         for j in xrange(self.dimy):
@@ -506,3 +508,5 @@ vw8 = ViewWindow(0, 1, 0, 1, 0, 2 * pi, pi / 500, 400, 400, 2, False, False)
 vw9 = ViewWindow(-5, 5, -2, 2, 0, 2 * pi, pi / 500, 1200, 480, 1, True, True)
 vwA = ViewWindow(-3, 3, -2, 2, 0, 2 * pi, pi / 500, 600, 400, 1, False, False)
 vwB = ViewWindow(-1.2, 1.2, -0.4, 2.0, 0, 2 * pi, pi / 500, 400, 400, 2, False, False)
+
+vws = [vw0, vw1, vw2, vw3, vw4, vw5, vw6, vw7, vw8, vw9, vwA, vwB]
