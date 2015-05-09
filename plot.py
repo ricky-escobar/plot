@@ -1,16 +1,22 @@
-from math import e
+from math import sqrt, e, log, cos, pi, sin, ceil, atan, atan2
+from random import randint, choice
+from time import time, asctime
+from itertools import product
+from PIL import Image
+
+from light_sim import light_sim, Material, Vec
+from graph import Graph
+from polynomial import Polynomial
+from plot_help import colorcube, hilbert, lp, direct, rgb, argcmp, colors, diffquo, newton, vw6, frange, coloradd, \
+    mkdir, ViewWindow, vwB, init, vwA, gradient, rbow, writegif, colorscale, closest
+
 try:
     import numpy as np
 except ImportError:
     np = None
-from light_sim import *
-from graph import Graph
-
-from polynomial import Polynomial
-from plot_help import *
 
 
-def funcgraph(funclist, vw=ViewWindow(), colorlist=None, auto=False, filename="plot" + str(int(time.time())), gif=False,
+def funcgraph(funclist, vw=ViewWindow(), colorlist=None, auto=False, filename="plot" + str(int(time())), gif=False,
               add=False, avg=False, initcolor=rgb(), save=True):
     images = []
     if auto:
@@ -35,7 +41,7 @@ def funcgraph(funclist, vw=ViewWindow(), colorlist=None, auto=False, filename="p
 
 
 def polar(rlist, vw=ViewWindow(), colorlist=None, auto=False, gif=False, add=False, avg=False, initcolor=rgb(),
-          filename="polar" + str(int(time.time())), save=True):
+          filename="polar" + str(int(time())), save=True):
     if callable(rlist):
         xlist = lambda t: rlist(t) * cos(t)
         ylist = lambda t: rlist(t) * sin(t)
@@ -46,7 +52,7 @@ def polar(rlist, vw=ViewWindow(), colorlist=None, auto=False, gif=False, add=Fal
 
 
 def param(xlist, ylist, vw=ViewWindow(), colorlist=None, auto=False, gif=False, add=False, avg=False, initcolor=rgb(),
-          filename="param" + str(int(time.time())), save=True):
+          filename="param" + str(int(time())), save=True):
     if callable(xlist):
         xlist = [xlist]
     if callable(ylist):
@@ -79,7 +85,7 @@ def param(xlist, ylist, vw=ViewWindow(), colorlist=None, auto=False, gif=False, 
 
 
 def polarshade(r1, r2, vw=ViewWindow(), color=None, auto=False, initcolor=0,
-               filename="polarshade" + str(int(time.time())), save=True):
+               filename="polarshade" + str(int(time())), save=True):
     if auto:
         vw.autoparam([lambda t0: r1(t0) * cos(t0), lambda t0: r2(t0) * cos(t0)],
                      [lambda t0: r1(t0) * sin(t0), lambda t0: r2(t0) * sin(t0)])
@@ -93,8 +99,8 @@ def polarshade(r1, r2, vw=ViewWindow(), color=None, auto=False, initcolor=0,
         x = vw.xpxcart(i)
         for j in range(vw.dimy):
             y = vw.ypxcart(j)
-            t = math.atan2(y, x)
-            r = math.sqrt(x ** 2 + y ** 2)
+            t = atan2(y, x)
+            r = sqrt(x ** 2 + y ** 2)
             if color == 'rainbow':
                 c = rbow(t)
             if r1(t) - th <= r <= r2(t) + th or r2(t) - th <= r <= r1(t) + th:
@@ -103,7 +109,7 @@ def polarshade(r1, r2, vw=ViewWindow(), color=None, auto=False, initcolor=0,
 
 
 def basin(f, rootlist, colorlist=None, vw=ViewWindow(), df=None, n=10, dots=True,
-          filename="basin" + str(int(time.time())), save=True):
+          filename="basin" + str(int(time())), save=True):
     if df is None:
         df = diffquo(f, .0001)
     if colorlist is None:
@@ -119,7 +125,7 @@ def basin(f, rootlist, colorlist=None, vw=ViewWindow(), df=None, n=10, dots=True
 
 
 def basin2(f, rootlist, colorlist=None, vw=ViewWindow(), df=None, n=10, dots=True,
-           filename="basin2" + str(int(time.time())), dist=0.3, save=True):
+           filename="basin2" + str(int(time())), dist=0.3, save=True):
     if df is None:
         df = diffquo(f, .0001)
     if colorlist is None:
@@ -142,7 +148,7 @@ def basin2(f, rootlist, colorlist=None, vw=ViewWindow(), df=None, n=10, dots=Tru
 
 
 def basin3(f, rootlist, colorlist=None, vw=ViewWindow(), df=None, n=10, dots=True,
-           filename="basin" + str(int(time.time())), save=True):
+           filename="basin" + str(int(time())), save=True):
     if df is None:
         df = diffquo(f, .0001)
     if colorlist is None:
@@ -161,7 +167,7 @@ def basin3(f, rootlist, colorlist=None, vw=ViewWindow(), df=None, n=10, dots=Tru
     return data.save(filename, save)
 
 
-def newtondist(f, vw=ViewWindow(), df=None, n=1, pxdist=1, filename="newtondist" + str(int(time.time()))):
+def newtondist(f, vw=ViewWindow(), df=None, n=1, pxdist=1, filename="newtondist" + str(int(time()))):
     images = []
     if df is None:
         df = diffquo(f, .0001)
@@ -181,7 +187,7 @@ def newtondist(f, vw=ViewWindow(), df=None, n=1, pxdist=1, filename="newtondist"
     return images[-1]
 
 
-def newtondiff(f, vw=ViewWindow(), df=None, n=1, pxdist=1, filename="newtondiff" + str(int(time.time())), save=True):
+def newtondiff(f, vw=ViewWindow(), df=None, n=1, pxdist=1, filename="newtondiff" + str(int(time())), save=True):
     if df is None:
         df = diffquo(f, .0001)
     data = init(vw, 0x000000)
@@ -199,7 +205,7 @@ def newtondiff(f, vw=ViewWindow(), df=None, n=1, pxdist=1, filename="newtondiff"
 
 
 def rk4(f, initlist, vw=ViewWindow(), h=.001, colorlist=None, sf=False, sfspread=20, sfcolor=0x0000FF,
-        filename="rk4" + str(int(time.time())), save=True):
+        filename="rk4" + str(int(time())), save=True):
     data = init(vw, 0x000000)
     if sf:
         data.data = list(slopefield(f, vw, sfspread, sfcolor, save=False).getdata())
@@ -222,7 +228,7 @@ def rk4(f, initlist, vw=ViewWindow(), h=.001, colorlist=None, sf=False, sfspread
     return data.save(filename, save)
 
 
-def slopefield(f, vw=ViewWindow(), spread=20, color=0x0000FF, filename="slopefield" + str(int(time.time())), save=True):
+def slopefield(f, vw=ViewWindow(), spread=20, color=0x0000FF, filename="slopefield" + str(int(time())), save=True):
     tmp = vw.thick
     vw.thick = 0
     data = init(vw, 0x000000)
@@ -231,7 +237,7 @@ def slopefield(f, vw=ViewWindow(), spread=20, color=0x0000FF, filename="slopefie
     for i in range(vw.dimx):
         for j in range(vw.dimy):
             if i % spread == 0 and j % spread == 0:
-                theta = math.atan(f(*vw.xpxcart((i, j))))
+                theta = atan(f(*vw.xpxcart((i, j))))
                 data.line((vw.xpxcart(i) + cartspreadx * cos(theta) / 4, vw.ypxcart(j) - cartspready * sin(theta) / 4),
                           (vw.xpxcart(i) - cartspreadx * cos(theta) / 4, vw.ypxcart(j) + cartspready * sin(theta) / 4),
                           color)
@@ -239,7 +245,7 @@ def slopefield(f, vw=ViewWindow(), spread=20, color=0x0000FF, filename="slopefie
     return data.save(filename, save)
 
 
-def implicit(flist, vw=ViewWindow(), decay=100, colorlist=None, filename="implicit" + str(int(time.time())), save=True):
+def implicit(flist, vw=ViewWindow(), decay=100, colorlist=None, filename="implicit" + str(int(time())), save=True):
     data = init(vw)
     color = 0
     if colorlist is None:
@@ -258,7 +264,7 @@ def implicit(flist, vw=ViewWindow(), decay=100, colorlist=None, filename="implic
     return data.save(filename, save)
 
 
-def implicit2(flist, vw=ViewWindow(), colorlist=None, filename="implicit2" + str(int(time.time())),
+def implicit2(flist, vw=ViewWindow(), colorlist=None, filename="implicit2" + str(int(time())),
               save=True):
     data = init(vw)
     if colorlist is None:
@@ -269,7 +275,7 @@ def implicit2(flist, vw=ViewWindow(), colorlist=None, filename="implicit2" + str
         for i in range(vw.dimx):
             for j in range(vw.dimy):
                 x, y = vw.px2cart((i, j))
-                grad = math.sqrt(gradient(f, (x, y))[0] ** 2 + gradient(f, (x, y))[1] ** 2)
+                grad = sqrt(gradient(f, (x, y))[0] ** 2 + gradient(f, (x, y))[1] ** 2)
                 if colorlist == "rainbow":
                     color = rbow(vw.xpxcart(i) + vw.ypxcart(j), 2)
                 if abs(f(x, y)) < 10 ** (-2 + grad / 5):
@@ -278,13 +284,13 @@ def implicit2(flist, vw=ViewWindow(), colorlist=None, filename="implicit2" + str
 
 
 def levelcurves(f, vw=ViewWindow(), decay=100, minval=-1, maxval=1, step=.1,
-                filename="levelcurves" + str(int(time.time())), save=True):
+                filename="levelcurves" + str(int(time())), save=True):
     flist = [(lambda k: lambda x, y: f(x, y) - k)(i) for i in frange(minval, maxval + step, step)]
     implicit(flist, vw, decay, colors(len(flist)), filename, save)
 
 
 def color3d(f, vw=ViewWindow(), base=1.0, pos=rgb(255, 0, 0), neg=rgb(0, 0, 255),
-            filename="color3d" + str(int(time.time())), save=True):
+            filename="color3d" + str(int(time())), save=True):
     data = init(vw)
     for i in range(vw.dimx):
         for j in range(vw.dimy):
@@ -307,7 +313,7 @@ def zrotate(xlist, ylist, vw=ViewWindow(), segs=4, colorlist=None, auto=False, f
     if auto:
         vw.autoparam(xlist, ylist)
     if filename is None:
-        filename = "zrotate" + str(int(time.time()))
+        filename = "zrotate" + str(int(time()))
     data = init(vw, initcolor)
     images = []
     if colorlist is None:
@@ -327,13 +333,11 @@ def zrotate(xlist, ylist, vw=ViewWindow(), segs=4, colorlist=None, auto=False, f
     return data.save(filename, save)
 
 
-def gridspanningtree(m, n, d=2, r=0, g="grid", filename=None, func="spanningtreedfs", gif=False,
-                     save=True):
+def gridspanningtree(m, n, d=2, r=0, g="grid", filename=None, treefunc="dfs", gif=False, save=True):
     images = []
     if not isinstance(g, Graph):
-        (x, y) = (random.randint(0, m - 1), random.randint(0, n - 1))
-        g = getattr(Graph, g)
-        g = eval("Graph." + g + "(m, n)." + func + "((x,y))")
+        (x, y) = (randint(0, m - 1), randint(0, n - 1))
+        g = getattr(Graph, g)(m, n).treefunc(treefunc, (x, y))
     else:
         (x, y) = list(g.dict.keys)[0]
     vw = ViewWindow(dimx=d * m + d - 1, dimy=d * n + d - 1)
@@ -357,7 +361,7 @@ def gridspanningtree(m, n, d=2, r=0, g="grid", filename=None, func="spanningtree
                 if gif:
                     images.append(data.save("", False))
     if filename is None:
-        filename = "gst " + str((m, n)) + " " + str(int(time.time()))
+        filename = "gst " + str((m, n)) + " " + str(int(time()))
     ret = data.save(filename, save)
     if gif:
         writegif(filename, images, 0.01)
@@ -368,11 +372,11 @@ def gridspanningtree2(m, n, d=2, r=0, g="grid", filename=None, treefunc=None, fu
                       save=True):
     images = []
     if not isinstance(g, Graph):
-        g = eval("Graph." + g + "(m, n)")
+        g = getattr(Graph, g)(m, n)
     if treefunc is not None:
-        (x, y) = (random.randint(0, m - 1), random.randint(0, n - 1))
+        (x, y) = (randint(0, m - 1), randint(0, n - 1))
         g = g.treefunc(treefunc, (x, y))
-    (x, y) = (random.randint(0, m - 1), random.randint(0, n - 1))
+    (x, y) = (randint(0, m - 1), randint(0, n - 1))
     g = g.func(func, (x, y))
     vw = ViewWindow(dimx=d * m + d - 1, dimy=d * n + d - 1)
     data = init(vw)
@@ -392,7 +396,7 @@ def gridspanningtree2(m, n, d=2, r=0, g="grid", filename=None, treefunc=None, fu
         if gif:
             images.append(data.save("", False))
     if filename is None:
-        filename = "gst2 " + str((m, n)) + " " + str(time.time())
+        filename = "gst2 " + str((m, n)) + " " + str(time())
     ret = data.save(filename, save)
     if gif:
         writegif(filename, images, 0.01)
@@ -410,38 +414,36 @@ def graphpict(m, n, g="grid", treefunc="dfs", func="bfs", colorfunc="hilbert", g
     if not colorfunc.startswith("rbow"):
         clist = colorcube(colorfunc)
     if func == "hilbert":
-        l = hilbert(int(math.ceil(math.log(max(m, n), 2))))
+        l = hilbert(int(ceil(log(max(m, n), 2))))
         gstr = "None"
     else:
         if not isinstance(g, Graph):
             gstr = g
-            g = eval("Graph." + g + "(m, n)")
+            g = getattr(Graph, g)(m, n)
         else:
             gstr = "Graph"
         if v0 is None:
-            v0 = random.choice(g.dict.keys())
+            v0 = choice(g.dict.keys())
         if treefunc is not None:
             if v1 is None:
-                v1 = random.choice(g.dict.keys())
+                v1 = choice(g.dict.keys())
             g = g.treefunc(treefunc, v1, rand)
-            # g = eval("Graph.spanningtree(g." + treefunc + ", v1, rand)")
         l = g.func(func, v0, rand)
-        # l = eval("g." + func + "(v0, rand)")
     if gif and gifres is None:
-        gifres = math.ceil(area / 150.0)
+        gifres = ceil(area / 150.0)
     vw = ViewWindow(dimx=m, dimy=n)
     data = init(vw)
     i = 0
     for p in l:
         if colorfunc.startswith("rbow"):
-            data.putpixel(p, eval(colorfunc + "(2*pi*i/area, 1)"))
+            data.putpixel(p, globals()[colorfunc](2 * pi * i / area, 1))
         else:
             data.putpixel(p, rgb(*[c * 4 for c in clist[min(64 ** 3 * i / area, 64 ** 3 - 1)]], permute=permute))
         if gif and (i + 1) % gifres == 0:
             images.append(data.save("", False))
         i += 1
     filename = str((m, n)) + " " + gstr + " spanningtree" + str(treefunc) + " " + func + " " + colorfunc + " " + str(
-        rand) + " " + str((v0, v1)) + " " + str(int(time.time()))
+        rand) + " " + str((v0, v1)) + " " + str(int(time()))
     ret = data.save(filename, save)
     if gif:
         writegif(filename, images, 0.001)
@@ -449,7 +451,7 @@ def graphpict(m, n, g="grid", treefunc="dfs", func="bfs", colorfunc="hilbert", g
 
 
 def voronoi(rootlist, colorlist=None, vw=ViewWindow(), dots=True, metric=lp(2), select=1,
-            filename="voronoi" + str(int(time.time())), save=True):
+            filename="voronoi" + str(int(time())), save=True):
     if colorlist is None:
         colorlist = colors(len(rootlist))
     data = init(vw)
@@ -466,13 +468,13 @@ def complexroots(deg, vw, color=rgb(5, 0, 0), coeffs=(-1, 1), filename=None, sav
     if np is None:
         raise Exception()
     data = init(vw)
-    for i, l in enumerate(itertools.product(coeffs, repeat=deg + 1)):
+    for i, l in enumerate(product(coeffs, repeat=deg + 1)):
         if i % len(coeffs) ** (deg - 4) == 0:
             print float(i) / 2 ** (deg + 1)
         for root in np.roots(l):
             data.putpoint((root.real, root.imag), color, True)
     if filename is None:
-        filename = "complexroots " + str(deg) + " " + str(int(time.time()))
+        filename = "complexroots " + str(deg) + " " + str(int(time()))
     return data.save(filename, save)
 
 
@@ -483,9 +485,9 @@ def polynomialbasin(coeffs, vw, auto=False, n=10, dots=True, mode=1, filename=No
     if auto:
         vw.autocomplex(*rootlist)
     if filename is None:
-        filename = "polynomialbasin {poly} {n} {dots} {time}".format(p, n, dots, str(int(time.time())))
-    return eval("basin{mode}(p, rootlist, colors(len(rootlist)), vw, p.deriv(), n, dots, {filename}, {save}".format(
-        str(mode) * (mode in {2, 3}), filename, str(save)))
+        filename = "polynomialbasin {poly} {n} {dots} {time}".format(p, n, dots, str(int(time())))
+    return globals()["basin" + str(mode) * (mode in (2, 3))](p, rootlist, colors(len(rootlist)), vw, p.deriv(), n, dots,
+                                                             filename, save)
 
 
 def mandelbrot(vw=ViewWindow(xmin=-2.3, xmax=0.7, ymin=-1.5, ymax=1.5, dimx=700, dimy=700), n=50, reflect=True,
@@ -515,7 +517,7 @@ def mandelbrot(vw=ViewWindow(xmin=-2.3, xmax=0.7, ymin=-1.5, ymax=1.5, dimx=700,
         else:
             break
     if filename is None:
-        filename = "mandelbrot " + str(n) + " " + str(int(time.time()))
+        filename = "mandelbrot " + str(n) + " " + str(int(time()))
     return data.save(filename, save)
 
 
@@ -534,7 +536,7 @@ def julia(f, vw, n=50, zmax=2, color=rgb(255, 0, 0), filename=None, save=True):
             i += 1
         data.putpixel(p, colorfunc(float(i) / n))
     if filename is None:
-        filename = "julia " + str(n) + " " + str(zmax) + " " + str(int(time.time()))
+        filename = "julia " + str(n) + " " + str(zmax) + " " + str(int(time()))
     return data.save(filename, save)
 
 
@@ -545,7 +547,7 @@ def juliazoom(f, vw, z0=0, factor=1.5, frames=20, n=50, duration=0.5, zmax=2, co
                         dimx=vw.dimx, dimy=vw.dimy)
         images.append(julia(f, vw, n, zmax, color, filename, False))
     if filename is None:
-        filename = "julia " + str(n) + " " + str(zmax) + " " + str(int(time.time()))
+        filename = "julia " + str(n) + " " + str(zmax) + " " + str(int(time()))
     writegif(filename, images, duration)
 
 
@@ -593,7 +595,7 @@ def sine(x, y):
 
 if __name__ == "__main__":
     mkdir()
-    print "Execution began at " + time.asctime()
+    print "Execution began at " + asctime()
 
     def test1():
         light_sim(vw=vwB, run_time=100, spawn_time=100, origin=Vec(0, 1.9), v=Vec(0, -1).unit() / 20,
@@ -630,4 +632,4 @@ if __name__ == "__main__":
 
     graphpict(500, 500)
 
-    print "Execution ended at " + time.asctime()
+    print "Execution ended at " + asctime()

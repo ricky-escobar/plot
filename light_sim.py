@@ -1,5 +1,8 @@
-from plot import *
-import random
+from math import cos, pi, acos
+from math import sin
+from time import time
+from plot import init, writegif, rgb
+from random import uniform, randrange
 from wav2rgb import wav2rgb
 
 H = 0.001
@@ -39,26 +42,16 @@ class Vec(object):
     def tuple(self):
         return self.x, self.y
 
-    def scale(self, c):
-        return Vec(self.x * c, self.y * c)
-
-    def sqrmagn(self):
-        return self.x ** 2 + self.y ** 2
-
     def unit(self):
         div = 1 / abs(self)
         return Vec(self.x * div, self.y * div)
-
-    def normal(self):
-        return Vec(-self.y, self.x)
 
     def rot(self, theta):
         return Vec(self.x * cos(theta) - self.y * sin(theta),
                    self.x * sin(theta) + self.y * cos(theta))
 
     def reflect(self, surface):
-        s = surface.unit()
-        return -self + 2 * (self * s) * s
+        return -self + 2 * (self * surface.unit()) * surface.unit()
 
 
 class Material(object):
@@ -132,7 +125,7 @@ class Photon(object):
                     self.v = self.v.reflect(s)
                     self.pos = isect + (abs(self.v) - abs(u)) * self.v.unit()
                 else:
-                    theta2 = math.acos(cos_theta2)
+                    theta2 = acos(cos_theta2)
                     self.v = (-s).rot(theta2).unit() * abs(self.v) * effindex
                     self.pos = isect + (abs(self.v) - effindex * abs(u)) * self.v.unit()
             else:
@@ -144,7 +137,7 @@ class Photon(object):
                 s = mat.surface(isect)
                 u = self.pos - isect
                 cos_theta2 = (1 / effindex) * (s * u) / (abs(s) * abs(u))
-                theta2 = math.acos(cos_theta2)
+                theta2 = acos(cos_theta2)
                 self.v = (-s).rot(-theta2).unit() * abs(self.v) / effindex
                 self.pos = isect + (abs(self.v) - abs(u) / effindex) * self.v.unit()
             else:
@@ -173,17 +166,17 @@ def light_sim(vw, run_time=100, spawn_time=100, origin=Vec(0, 0), v=Vec(0, .05),
             data.putpoint(photon.pos.tuple(), photon.color, add=color_add)
         if t < spawn_time:
             for i in range(density):
-                r1, r2 = random.uniform(-1, 1), random.uniform(-1, 1)
+                r1, r2 = uniform(-1, 1), uniform(-1, 1)
                 pos0 = origin + offset1 * r1 + offset2 * r2
                 if segregation:
                     wav = r2 * 200 + 580
                 else:
-                    wav = random.randrange(colormin, colormax + 1)
+                    wav = randrange(colormin, colormax + 1)
                 photon = Photon(pos0, v, wav)
                 l.append(photon)
                 data.putpoint(photon.pos.tuple(), photon.color, add=color_add)
         if gif and t % gifres == 0:
             imgs.append(data.save("", False))
-    data.save("light_sim" + str(int(time.time())))
+    data.save("light_sim" + str(int(time())))
     if gif:
-        writegif("light_sim" + str(int(time.time())), imgs)
+        writegif("light_sim" + str(int(time())), imgs)
