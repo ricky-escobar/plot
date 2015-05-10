@@ -22,6 +22,8 @@ def funcgraph(funclist, vw=ViewWindow(), colorlist=None, auto=False, filename="p
     images = []
     if auto:
         vw.autograph(funclist)
+    if callable(funclist):
+        funclist = [funclist]
     data = init(vw, initcolor)
     if colorlist is None:
         colorlist = colors(len(funclist))

@@ -17,7 +17,7 @@ from images2gif import writeGif
 
 direct = "C:\\Users\\Ricky\\Desktop\\test\\"
 fileextension = '.png'
-SCREEN = True and win32gui is not None
+SCREEN = False and win32gui is not None
 if SCREEN:
     DC = win32gui.GetDC(0)
 
@@ -34,6 +34,10 @@ class PlotData(object):
             self.data = [0] * (vw.dimx * vw.dimy)
 
     def getpixel(self, (i, j)):
+        return self.data[j * self.vw.dimx + i]
+
+    def __getitem__(self, (i, j)):
+        # (i, j) = item
         return self.data[j * self.vw.dimx + i]
 
     def putpixel(self, (i, j), color, add=False, avg=False):
@@ -195,13 +199,13 @@ class ViewWindow(object):
         return i * float(self.xmax - self.xmin) / self.dimx + self.xmin
 
     def xcartpx(self, x):
-        return int(round(self.dimx * (x - self.xmin) / (self.xmax - self.xmin)))
+        return int(self.dimx * (x - self.xmin) / (self.xmax - self.xmin))
 
     def ypxcart(self, j):
         return self.ymax - j * float(self.ymax - self.ymin) / self.dimy
 
     def ycartpx(self, y):
-        return int(round(self.dimy * (self.ymax - y) / (self.ymax - self.ymin)))
+        return int(self.dimy * (self.ymax - y) / (self.ymax - self.ymin))
 
     def px2cart(self, (i, j)):
         return self.xpxcart(i), self.ypxcart(j)
