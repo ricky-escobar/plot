@@ -1,7 +1,7 @@
 from math import sin
 from time import asctime
 
-from light_sim import light_sim, Material, Vec
+from light_sim import light_sim, Material, Vec, fresnel
 from plot_help import vws, mkdir
 
 
@@ -33,9 +33,25 @@ def sine(x, y):
     return sin(2 * x) - 0.5 < y < sin(2 * x) + 0.5
 
 
+def squares(x, y):
+    return x % .4 < .2 and y % .4 < .2
+
+
+def surface(_, y):
+    return y < 0
+
+
+def test0():
+    light_sim(vw=vws[6], origin=Vec(.5, .5), v=Vec(-1, -1).unit() / 20, mat=Material(surface, 1.5))
+
+
+def test0a():
+    light_sim(vw=vws[6], origin=Vec(.5, .4), v=Vec(-.5, -.4).unit() / 20, mat=Material(surface, 1.5))
+
+
 def test1():
-    light_sim(vw=vws[11], max_run_time=500, spawn_time=500, origin=Vec(0, 1.9), v=Vec(0, -1).unit() / 20,
-              mat=Material(triangle, 1.3), density=30, perp_width=.09, parallel_width=.09, save=False, gif=False, gifres=1)
+    light_sim(vw=vws[11], max_run_time=100, spawn_time=100, origin=Vec(0, 1.9), v=Vec(0, -1).unit() / 20,
+              mat=Material(triangle, 1.3), density=30, perp_width=.09, parallel_width=.09)
 
 
 def test2():
@@ -82,10 +98,16 @@ def test7():
     light_sim(vw=vws[10], max_run_time=200, spawn_time=2, origin=Vec(-2.6, 0), v=Vec(1, 0).unit() / 20,
               mat=Material(sine, 1.7), density=50, perp_width=.5, parallel_width=.06)
 
+
+def test8():
+    light_sim(vw=vws[6], max_run_time=200, spawn_time=75, origin=Vec(-1, -.1), v=Vec(1, .3).unit() / 20,
+              mat=Material(squares, 1.3), density=500, perp_width=.05, parallel_width=.05, segregation=False)
+
+
 mkdir()
 
 print "Execution began at " + asctime()
 
-test1()
+test8()
 
 print "Execution ended at " + asctime()

@@ -1,4 +1,4 @@
-from math import cos, pi, acos
+from math import cos, pi, acos, sqrt
 from math import sin
 from time import time
 from plot import init, writegif, rgb
@@ -7,6 +7,14 @@ from wav2rgb import wav2rgb
 
 H = 0.001
 
+def fresnel(n1, n2, cos_theta1, cos_theta2):
+    if abs(cos_theta2) > 1:
+        return 1.0
+    sin_theta1 = sqrt(1 - cos_theta1 ** 2)
+    sin_theta2 = sqrt(1 - cos_theta2 ** 2)
+    r_s = ((n1 * sin_theta1 - n2 * sin_theta2) / (n1 * sin_theta1 + n2 * sin_theta2)) ** 2
+    r_p = ((n1 * sin_theta2 - n2 * sin_theta1) / (n1 * sin_theta2 + n2 * sin_theta1)) ** 2
+    return (r_s + r_p) / 2
 
 class Vec(object):
     def __init__(self, x, y):
@@ -109,7 +117,7 @@ class Photon(object):
         self.wavelength = wavelength
         self.color = wav2rgb(wavelength)
 
-    def move(self, mat):
+    def move(self, mat, reflect=True):
         effindex = mat.calc_index(self.wavelength)
         if self in mat:
             v = self.v / effindex
@@ -117,8 +125,9 @@ class Photon(object):
                 isect = mat.find_intersect(self.pos, v)
                 s = mat.surface(isect)
                 u = self.pos - isect
-                cos_theta2 = effindex * (s * u) / (abs(s) * abs(u))
-                if abs(cos_theta2) > 1:
+                cos_theta1 = (s * u) / (abs(s) * abs(u))
+                cos_theta2 = effindex * cos_theta1
+                if uniform(0, 1) < fresnel(effindex, 1.0, cos_theta1, cos_theta2):
                     v = v.reflect(s)
                     self.v = effindex * v
                     self.pos = isect + (abs(v) - abs(u)) * v.unit()
@@ -133,17 +142,24 @@ class Photon(object):
                 isect = mat.find_intersect(self.pos, self.v)
                 s = mat.surface(isect)
                 u = self.pos - isect
-                cos_theta2 = (1 / effindex) * (s * u) / (abs(s) * abs(u))
-                theta2 = acos(cos_theta2)
-                self.v = abs(self.v) * (-s).rot(-theta2).unit()
-                self.pos = isect + (abs(self.v) - abs(u)) * self.v.unit() / effindex
+                cos_theta1 = (s * u) / (abs(s) * abs(u))
+                cos_theta2 = cos_theta1 / effindex
+                if uniform(0, 1) < fresnel(1.0, effindex, cos_theta1, cos_theta2):
+                    self.v = self.v.reflect(s)
+                    self.pos = isect + (abs(self.v) - abs(u)) * self.v.unit()
+                else:
+                    theta2 = acos(cos_theta2)
+                    self.v = abs(self.v) * (-s).rot(-theta2).unit()
+                    self.pos = isect + (abs(self.v) - abs(u)) * self.v.unit() / effindex
             else:
                 self.pos += self.v
 
 
-def light_sim(vw, max_run_time=100, spawn_time=100, origin=Vec(0, 0), v=Vec(0, .05), mat=Material.empty(),
-              density=20, perp_width=.5, parallel_width=.6, segregation=False, colormin=380, colormax=780,
+def light_sim(vw, max_run_time=100, spawn_time=None, origin=Vec(0, 0), v=Vec(0, .05), mat=Material.empty(),
+              density=20, perp_width=.05, parallel_width=.06, segregation=False, colormin=380, colormax=780,
               color_add=True, save=True, gif=True, gifres=1):
+    if spawn_time is None:
+        spawn_time = max_run_time
     data = init(vw)
     data0 = init(vw)
     mat_color = rgb(20, 20, 20)
@@ -158,10 +174,10 @@ def light_sim(vw, max_run_time=100, spawn_time=100, origin=Vec(0, 0), v=Vec(0, .
     for t in xrange(max_run_time):
         for i in xrange(len(l) - 1, -1, -1):
             photon = l[i]
-            if photon.pos.tuple() not in vw:
+            (m, n) = vw.cart2px(photon.pos.tuple())
+            if not vw.contains_pixel((m, n)):
                 del l[i]
             elif gif:
-                (m, n) = vw.cart2px(photon.pos.tuple())
                 data.putpixel((m, n), data0[(m, n)])  # , add=True, avg=True)
         for photon in l:
             photon.move(mat)

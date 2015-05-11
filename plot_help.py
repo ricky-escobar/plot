@@ -191,9 +191,11 @@ class ViewWindow(object):
         else:
             self.dimx = int(self.dimx * (self.xmax - self.xmin) / (self.ymax - self.ymin))
 
-    def __contains__(self, item):
-        (x, y) = item
+    def __contains__(self, (x, y)):
         return self.xmin <= x <= self.xmax and self.ymin <= y <= self.ymax
+
+    def contains_pixel(self, (i, j)):
+        return 0 <= i < self.dimx and 0 <= j < self.dimy
 
     def xpxcart(self, i):
         return i * float(self.xmax - self.xmin) / self.dimx + self.xmin
