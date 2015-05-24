@@ -1,5 +1,5 @@
 # adapted from http://codingmess.blogspot.com/2009/05/conversion-of-wavelength-in-nanometers.html
-from plot_help import rgb
+from plot_help import Color
 
 
 def wav2rgb(wavelength):
@@ -43,4 +43,4 @@ def wav2rgb(wavelength):
         c = 0.3 + 0.7 * (780 - w) / (780 - 700)
     c *= 255
 
-    return rgb(int(c * r), int(c * g), int(c * b))
+    return Color(c * r, c * g, c * b)

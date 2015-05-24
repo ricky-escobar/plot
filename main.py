@@ -1,8 +1,10 @@
 from math import sin
 from time import asctime
+import pygame
 
-from light_sim import light_sim, Material, Vec, fresnel
+from light_sim import light_sim, Material, Vec
 from plot_help import vws, mkdir
+import plot
 
 
 def triangle(x, y):
@@ -35,6 +37,12 @@ def sine(x, y):
 
 def squares(x, y):
     return x % .4 < .2 and y % .4 < .2
+
+
+def circles(x, y):
+    x, y = x % .5 - .25, y % .5 - .25
+    r_squared = .2 ** 2
+    return x ** 2 + y ** 2 < r_squared
 
 
 def surface(_, y):
@@ -95,8 +103,8 @@ def test6():
 
 
 def test7():
-    light_sim(vw=vws[10], max_run_time=200, spawn_time=2, origin=Vec(-2.6, 0), v=Vec(1, 0).unit() / 20,
-              mat=Material(sine, 1.7), density=50, perp_width=.5, parallel_width=.06)
+    light_sim(vw=vws[10], max_run_time=200, spawn_time=75, origin=Vec(-2.6, 0), v=Vec(1, 0).unit() / 20,
+              mat=Material(sine, 1.7), density=50, perp_width=.05, parallel_width=.06)
 
 
 def test8():
@@ -104,10 +112,22 @@ def test8():
               mat=Material(squares, 1.3), density=500, perp_width=.05, parallel_width=.05, segregation=False)
 
 
+def test9():
+    light_sim(vw=vws[6], max_run_time=350, spawn_time=100, origin=Vec(-1, 0), v=Vec(1, .3).unit() / 20,
+              mat=Material(circles, 1.3), density=1000, perp_width=.05, parallel_width=.05, segregation=True,
+              color_add=False)
+
+
 mkdir()
 
 print "Execution began at " + asctime()
 
-test8()
+plot.graphpict(1000, 1000, gifres=1000, gif=True)
 
 print "Execution ended at " + asctime()
+
+QUIT = getattr(pygame, 'QUIT')
+while True:
+    for evt in pygame.event.get():
+        if evt.type == QUIT:
+            quit()

@@ -1,76 +1,156 @@
 import math
 import time
-import itertools
 import errno
+import pygame
 from math import pi, sin, cos
 
 import hilbert3d
 
 import os
 from PIL import Image
-try:
-    import win32gui
-except ImportError:
-    win32gui = None
+
 from images2gif import writeGif
 
 
 direct = "C:\\Users\\Ricky\\Desktop\\test\\"
 fileextension = '.png'
-SCREEN = False and win32gui is not None
-if SCREEN:
-    DC = win32gui.GetDC(0)
+PYGAME_PIXEL = False
+PYGAME_FRAME = True
+PYGAME = PYGAME_PIXEL or PYGAME_FRAME
+if PYGAME:
+    pygame.display.init()
+
+
+class Color(object):
+    def __init__(self, r=0, g=0, b=0):
+        self.r = min(255, int(r))
+        self.g = min(255, int(g))
+        self.b = min(255, int(b))
+        self.val = self.r | (self.g << 8) | (self.b << 16)
+        if PYGAME:
+            self.pg = pygame.Color(self.r, self.g, self.b, 0)
+
+    def __add__(self, other):
+        return Color(self.r + other.r, self.g + other.g, self.b + other.b)
+
+    def __rmul__(self, other):
+        return Color(other * self.r, other * self.g, other * self.b)
+
+    def avg(self, other, (w1, w2)=(0.5, 0.5)):
+        return Color(w1 * self.r + w2 * other.r, w1 * self.g + w2 * other.g, w1 * self.b + w2 * other.b)
+
+    @staticmethod
+    def from_int(val):
+        return Color(val & 255, val >> 8 & 255, val >> 16 & 255)
+
+    @staticmethod
+    def colors(n):
+        return [Color.rbow(2 * pi * k / n, 1) for k in range(n)]
+
+    @staticmethod
+    def colors0(n):
+        return [Color.rbow0(2 * pi * k / n, 1) for k in range(n)]
+
+    @staticmethod
+    def hsl(h, s, l):
+        c = (1 - abs(2 * l - 1)) * s
+        m = l - c / 2
+        h1 = (h / (pi / 3)) % 6
+        x = c * (1 - abs(h1 % 2 - 1))
+        if h is None:
+            (r, g, b) = (m, m, m)
+        elif 0 <= h1 < 1:
+            (r, g, b) = (c + m, x + m, m)
+        elif 1 <= h1 < 2:
+            (r, g, b) = (x + m, c + m, m)
+        elif 2 <= h1 < 3:
+            (r, g, b) = (m, c + m, x + m)
+        elif 3 <= h1 < 4:
+            (r, g, b) = (m, x + m, c + m)
+        elif 4 <= h1 < 5:
+            (r, g, b) = (x + m, m, c + m)
+        else:
+            (r, g, b) = (c + m, m, x + m)
+        return Color(255 * r, 255 * g, 255 * b)
+
+    @staticmethod
+    def rbow(t, freq=1.5):
+        return Color(127 * math.sin(freq * t) + 128,
+                     127 * math.sin(freq * t - 2 * pi / 3) + 128,
+                     127 * math.sin(freq * t + 2 * pi / 3) + 128)
+
+    @staticmethod
+    def rbow0(t, freq=1.5):
+        return Color.hsl(t * freq, 1, .5)
 
 
 class PlotData(object):
-    def __init__(self, vw, color=0, avg=False):
+    def __init__(self, vw, color=Color(0, 0, 0), avg=False):
         self.vw = vw
         self.color = color
-        if avg:
-            self.num = [0] * (vw.dimx * vw.dimy)
-        if color is not None:
-            self.data = [color] * (vw.dimx * vw.dimy)
+        if color == "rainbow":
+            self.data = [Color(0, 0, 0)] * (vw.dimx * vw.dimy)
         else:
-            self.data = [0] * (vw.dimx * vw.dimy)
+            self.data = [color] * (vw.dimx * vw.dimy)
+        if avg or color == "rainbow":
+            self.num = [0] * (vw.dimx * vw.dimy)
+        if PYGAME:
+            self.screen = pygame.display.set_mode((vw.dimx, vw.dimy))
+        if vw.axisx:
+            self.xaxis()
+        if vw.axisy:
+            self.yaxis()
 
     def getpixel(self, (i, j)):
         return self.data[j * self.vw.dimx + i]
 
     def __getitem__(self, (i, j)):
-        # (i, j) = item
         return self.data[j * self.vw.dimx + i]
 
-    def putpixel(self, (i, j), color, add=False, avg=False):
+    def putpixel(self, (i, j), color, add=False, avg=False, flip=True):
         if 0 <= i < self.vw.dimx and 0 <= j < self.vw.dimy:
             idx = j * self.vw.dimx + i
-            if not add:
+            if self.color == "rainbow":
+                self.num[idx] += 1
+                self.data[idx] = Color.rbow(min(2 * pi, self.num[idx]), 1)
+            elif not add:
                 self.data[idx] = color
             elif avg:
-                self.data[idx] = coloravg(self.data[idx], color,
-                                          (self.num[idx] / (self.num[idx] + 1.0), 1 / (self.num[idx] + 1.0)))
+                self.data[idx] = Color.avg(self.data[idx], color,
+                                           (self.num[idx] / (self.num[idx] + 1.0), 1 / (self.num[idx] + 1.0)))
                 self.num[idx] += 1
             else:
-                self.data[idx] = coloradd(self.data[idx], color)
-            if SCREEN and i < 1366 and j < 768:
-                win32gui.SetPixel(DC, i, j, self.data[idx])
+                self.data[idx] = self.data[idx] + color
+            if PYGAME_PIXEL:
+                self.screen.set_at((i, j), self.data[idx].pg)
+                if flip:
+                    pygame.display.flip()
 
-    def putpoint(self, (x, y), color, add=False, avg=False):
-        self.putpixel(self.vw.cart2px((x, y)), color, add, avg)
+    def putpoint(self, (x, y), color, add=False, avg=False, flip=True):
+        self.putpixel(self.vw.cart2px((x, y)), color, add, avg, flip)
 
     def save(self, filename, save=True):
         plot = Image.new("RGB", (self.vw.dimx, self.vw.dimy))
-        if self.color is None:
-            data2 = [0] * (self.vw.dimx * self.vw.dimy)
-            for i in range(len(self.data)):
-                if self.data[i] != 0:
-                    data2[i] = rbow(min(2 * pi, self.data[i]), 1)
-        else:
-            data2 = self.data
+        data2 = [c.val for c in self.data]
         plot.putdata(data2)
         if save:
             plot.save(direct + filename + fileextension)
             print "saved", filename + fileextension, "to", direct, "at", time.asctime()
+        if PYGAME_FRAME:
+            img = pygame.image.fromstring(plot.tostring(), plot.size, plot.mode)
+            self.screen.blit(img, (0, 0))
+            pygame.display.flip()
         return plot
+
+    def yaxis(self, color=Color(85, 85, 85)):
+        if (0, self.vw.ymax) in self.vw and self.vw.xmax != 0 and self.vw.xmin != 0:
+            for i in range(self.vw.dimy):
+                self.putpixel((self.vw.xcartpx(0), i), color)
+
+    def xaxis(self, color=Color(85, 85, 85)):
+        if (self.vw.xmax, 0) in self.vw and self.vw.ymin != 0 and self.vw.xmin != 0:
+            for i in range(self.vw.dimx):
+                self.putpixel((i, self.vw.ycartpx(0)), color)
 
     def line0(self, (x1, y1), (x2, y2), color, add=False, avg=False):
         x1, y1 = self.vw.cart2px((x1, y1))
@@ -82,7 +162,7 @@ class PlotData(object):
                 for c in range(-self.vw.thick, self.vw.thick + 1):
                     for d in range(-self.vw.thick, self.vw.thick + 1):
                         if c ** 2 + d ** 2 <= self.vw.thick ** 2 and x1 != x2:
-                            self.putpixel((i + d, y1 + (i - x1) * (y2 - y1) / (x2 - x1) + c), color, add, avg)
+                            self.putpixel((i + d, y1 + (i - x1) * (y2 - y1) / (x2 - x1) + c), color, add, avg, False)
         else:
             if y1 > y2:
                 (x1, y1), (x2, y2) = (x2, y2), (x1, y1)
@@ -90,7 +170,8 @@ class PlotData(object):
                 for c in range(-self.vw.thick, self.vw.thick + 1):
                     for d in range(-self.vw.thick, self.vw.thick + 1):
                         if c ** 2 + d ** 2 <= self.vw.thick ** 2 and y1 != y2:
-                            self.putpixel((x1 + (i - y1) * (x2 - x1) / (y2 - y1) + d, i + c), color, add, avg)
+                            self.putpixel((x1 + (i - y1) * (x2 - x1) / (y2 - y1) + d, i + c), color, add, avg, False)
+        pygame.display.flip()
 
     def line(self, (x1, y1), (x2, y2), color, add=False, avg=False):
         x1, y1 = self.vw.cart2px((x1, y1))
@@ -106,13 +187,14 @@ class PlotData(object):
                 (x1, y1), (x2, y2) = (x2, y2), (x1, y1)
             for i in range(x1, x2 + 1):
                 for c in range(-t, t + 1):
-                    self.putpixel((i, y1 + (i - x1) * (y2 - y1) / (x2 - x1) + c), color, add, avg)
+                    self.putpixel((i, y1 + (i - x1) * (y2 - y1) / (x2 - x1) + c), color, add, avg, False)
         else:
             if y1 > y2:
                 (x1, y1), (x2, y2) = (x2, y2), (x1, y1)
             for i in range(y1, y2 + 1):
                 for c in range(-t, t + 1):
-                    self.putpixel((x1 + (i - y1) * (x2 - x1) / (y2 - y1) + c, i), color, add, avg)
+                    self.putpixel((x1 + (i - y1) * (x2 - x1) / (y2 - y1) + c, i), color, add, avg, False)
+        pygame.display.flip()
 
     def circle(self, (x0, y0), r, color, add=False, avg=False, pts=400):
         t = 0
@@ -137,8 +219,7 @@ class PlotData(object):
 
 class ViewWindow(object):
     def __init__(self, xmin=-10.0, xmax=10.0, ymin=-10.0, ymax=10.0, tmin=0.0, tmax=2 * pi, tstep=pi / 2500, dimx=500,
-                 dimy=500,
-                 thick=1, axisx=False, axisy=False):
+                 dimy=500, thick=1, axisx=False, axisy=False):
         self.xmin = float(xmin)
         self.xmax = float(xmax)
         self.ymin = float(ymin)
@@ -235,92 +316,10 @@ class ViewWindow(object):
                 yield self.xpxcart(i) + self.ypxcart(j) * 1j
 
 
-def colors0(n):
-    return [rbow0(2 * pi * k / n, 1) for k in range(n)]
-
-
-def colors(n):
-    return [rbow(2 * pi * k / n, 1) for k in range(n)]
-
-
-def coloradd(c1, c2):
-    return coloravg(c1, c2, (1, 1))
-
-
-def colorscale(color, mult):
-    return coloravg(color, 0, (mult, 0))
-
-
-def coloravg(c1, c2, (w1, w2)=(0.5, 0.5)):
-    return (0x010000 * min(int(c1 / 0x010000 * w1 + c2 / 0x010000 * w2), 0x0000FF)
-            + 0x000100 * min(int(c1 % 0x010000 / 0x000100 * w1 + c2 % 0x010000 / 0x000100 * w2), 0x0000FF)
-            + min(int(c1 % 0x000100 * w1 + c2 % 0x000100 * w2), 0x0000FF))
-
-
-def rgb(r=0, g=0, b=0, permute=0):
-    (r, g, b) = list(itertools.permutations((r, g, b)))[permute]
-    return min(255, int(r)) + 0x000100 * min(255, int(g)) + 0x010000 * min(255, int(b))
-
-
-def hsl(h, s, l):
-    c = (1 - abs(2 * l - 1)) * s
-    m = l - c / 2
-    h1 = (h / (pi / 3)) % 6
-    x = c * (1 - abs(h1 % 2 - 1))
-    if h is None:
-        (r, g, b) = (m, m, m)
-    elif 0 <= h1 < 1:
-        (r, g, b) = (c + m, x + m, m)
-    elif 1 <= h1 < 2:
-        (r, g, b) = (x + m, c + m, m)
-    elif 2 <= h1 < 3:
-        (r, g, b) = (m, c + m, x + m)
-    elif 3 <= h1 < 4:
-        (r, g, b) = (m, x + m, c + m)
-    elif 4 <= h1 < 5:
-        (r, g, b) = (x + m, m, c + m)
-    else:
-        (r, g, b) = (c + m, m, x + m)
-    return rgb(255 * r, 255 * g, 255 * b)
-
-
-def yaxis(vw, data, color=0x555555):
-    if (0, vw.ymax) in vw and vw.xmax != 0 and vw.xmin != 0:
-        for i in range(vw.dimy):
-            data.putpixel((vw.xcartpx(0), i), color)
-    return data
-
-
-def xaxis(vw, data, color=0x555555):
-    if (vw.xmax, 0) in vw and vw.ymin != 0 and vw.xmin != 0:
-        for i in range(vw.dimx):
-            data.putpixel((i, vw.ycartpx(0)), color)
-    return data
-
-
-def init(vw, color=0x000000, avg=False):
-    data = PlotData(vw, color, avg)
-    if vw.axisx:
-        data = xaxis(vw, data)
-    if vw.axisy:
-        data = yaxis(vw, data)
-    return data
-
-
 def suffix(vw, verbose=False):
     if verbose:
         return "-[" + str(vw.xmin) + "," + str(vw.xmax) + "]x[" + str(vw.ymin) + "," + str(vw.ymax) + "]"
     return ""
-
-
-def rbow(t, freq=1.5):
-    return rgb(127 * math.sin(freq * t) + 128,
-               127 * math.sin(freq * t - 2 * pi / 3) + 128,
-               127 * math.sin(freq * t + 2 * pi / 3) + 128)
-
-
-def rbow0(t, freq=1.5):
-    return hsl(t * freq, 1, .5)
 
 
 def diffquo(f, h):
@@ -508,7 +507,7 @@ vw2 = ViewWindow(-2.3, 0.7, -1.5, 1.5, 0, 2 * pi, pi / 200, 200, 200, 0, False, 
 vw3 = ViewWindow(-pi, pi, -pi, pi, 0, 2 * pi, pi / 200, 500, 500, 6, False, False)
 vw4 = ViewWindow(-1.96, 1.96, -1.1, 1.1, 0, 2 * pi, pi / 200, 1366, 768, 1, False, False)
 vw5 = ViewWindow(-2.3, 0.7, -1.5, 1.5, 0, 2 * pi, pi / 200, 700, 700, 0, False, False)
-vw6 = ViewWindow(-1.5, 1.5, -1.5, 1.5, 0, 2 * pi, pi / 200, 400, 400, 5, False, False)
+vw6 = ViewWindow(-1.5, 1.5, -1.5, 1.5, 0, 2 * pi, pi / 200, 400, 400, 2, False, False)
 vw7 = ViewWindow(-1, 1, -2, 2, 0, 2 * pi, pi / 500, 800, 800, 2, False, False)
 vw8 = ViewWindow(0, 1, 0, 1, 0, 2 * pi, pi / 500, 400, 400, 2, False, False)
 vw9 = ViewWindow(-5, 5, -2, 2, 0, 2 * pi, pi / 500, 1200, 480, 1, True, True)

@@ -1,11 +1,12 @@
 from math import cos, pi, acos, sqrt
 from math import sin
 from time import time
-from plot import init, writegif, rgb
+from plot import PlotData, Color, writegif
 from random import uniform, randrange
 from wav2rgb import wav2rgb
 
 H = 0.001
+
 
 def fresnel(n1, n2, cos_theta1, cos_theta2):
     if abs(cos_theta2) > 1:
@@ -15,6 +16,7 @@ def fresnel(n1, n2, cos_theta1, cos_theta2):
     r_s = ((n1 * sin_theta1 - n2 * sin_theta2) / (n1 * sin_theta1 + n2 * sin_theta2)) ** 2
     r_p = ((n1 * sin_theta2 - n2 * sin_theta1) / (n1 * sin_theta2 + n2 * sin_theta1)) ** 2
     return (r_s + r_p) / 2
+
 
 class Vec(object):
     def __init__(self, x, y):
@@ -72,6 +74,7 @@ class Material(object):
         return self.func(*point)
 
     def find_intersect(self, pos1, v):
+        """:type pos1: Vec"""
         pos2 = pos1 + v
         exiting = pos1 in self
         isect = (pos1 + pos2) / 2
@@ -90,11 +93,9 @@ class Material(object):
             theta = 0
             dtheta = pi / 2 - i * pi
             while abs(dtheta) > pi / 2 ** 10:
-                # while pos + H * Vec(cos(theta), sin(theta)) in self:
                 while self.func(pos.x + H * cos(theta), pos.y + H * sin(theta)):
                     theta += dtheta
                 dtheta /= 2
-                # while pos + H * Vec(cos(theta), sin(theta)) not in self:
                 while not self.func(pos.x + H * cos(theta), pos.y + H * sin(theta)):
                     theta -= dtheta
                 dtheta /= 2
@@ -117,7 +118,7 @@ class Photon(object):
         self.wavelength = wavelength
         self.color = wav2rgb(wavelength)
 
-    def move(self, mat, reflect=True):
+    def move(self, mat):
         effindex = mat.calc_index(self.wavelength)
         if self in mat:
             v = self.v / effindex
@@ -160,9 +161,9 @@ def light_sim(vw, max_run_time=100, spawn_time=None, origin=Vec(0, 0), v=Vec(0, 
               color_add=True, save=True, gif=True, gifres=1):
     if spawn_time is None:
         spawn_time = max_run_time
-    data = init(vw)
-    data0 = init(vw)
-    mat_color = rgb(20, 20, 20)
+    data = PlotData(vw)
+    data0 = PlotData(vw)
+    mat_color = Color(20, 20, 20)
     l = []
     imgs = []
     offset1 = parallel_width * v.unit() / 2
