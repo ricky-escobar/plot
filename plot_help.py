@@ -1,21 +1,21 @@
 import math
 import time
 import errno
-import pygame
 from math import pi, sin, cos
-
-import hilbert3d
-
 import os
-from PIL import Image
-
 from images2gif import writeGif
 
+import pygame
+from PIL import Image
 
-direct = "C:\\Users\\Ricky\\Desktop\\test\\"
+from graph import Graph
+
+
+
+direct = "C:\\Users\\Ricky\\Desktop\\"
 fileextension = '.png'
 PYGAME_PIXEL = False
-PYGAME_FRAME = True
+PYGAME_FRAME = False
 PYGAME = PYGAME_PIXEL or PYGAME_FRAME
 if PYGAME:
     pygame.display.init()
@@ -38,6 +38,11 @@ class Color(object):
 
     def avg(self, other, (w1, w2)=(0.5, 0.5)):
         return Color(w1 * self.r + w2 * other.r, w1 * self.g + w2 * other.g, w1 * self.b + w2 * other.b)
+
+    def scale(self, r_range, g_range, b_range):
+        def _scale(val, (lower, upper)):
+            return lower + val * (upper - lower) / 255
+        return Color(_scale(self.r, r_range), _scale(self.g, g_range), _scale(self.b, b_range))
 
     @staticmethod
     def from_int(val):
@@ -85,9 +90,10 @@ class Color(object):
 
 
 class PlotData(object):
-    def __init__(self, vw, color=Color(0, 0, 0), avg=False):
+    def __init__(self, vw, color=Color(0, 0, 0), avg=False, scales=None):
         self.vw = vw
         self.color = color
+        self.scales = scales
         if color == "rainbow":
             self.data = [Color(0, 0, 0)] * (vw.dimx * vw.dimy)
         else:
@@ -108,6 +114,8 @@ class PlotData(object):
         return self.data[j * self.vw.dimx + i]
 
     def putpixel(self, (i, j), color, add=False, avg=False, flip=True):
+        if self.scales is not None:
+            color = color.scale(*self.scales)
         if 0 <= i < self.vw.dimx and 0 <= j < self.vw.dimy:
             idx = j * self.vw.dimx + i
             if self.color == "rainbow":
@@ -171,7 +179,8 @@ class PlotData(object):
                     for d in range(-self.vw.thick, self.vw.thick + 1):
                         if c ** 2 + d ** 2 <= self.vw.thick ** 2 and y1 != y2:
                             self.putpixel((x1 + (i - y1) * (x2 - x1) / (y2 - y1) + d, i + c), color, add, avg, False)
-        pygame.display.flip()
+        if PYGAME:
+            pygame.display.flip()
 
     def line(self, (x1, y1), (x2, y2), color, add=False, avg=False):
         x1, y1 = self.vw.cart2px((x1, y1))
@@ -318,7 +327,7 @@ class ViewWindow(object):
 
 def suffix(vw, verbose=False):
     if verbose:
-        return "-[" + str(vw.xmin) + "," + str(vw.xmax) + "]x[" + str(vw.ymin) + "," + str(vw.ymax) + "]"
+        return " [{0}, {1}] x [{2}, {3}]".format(vw.xmin, vw.xmax, vw.ymin, vw.ymax)
     return ""
 
 
@@ -357,14 +366,9 @@ def rootsofunity(n, phi=0):
     return [cos(2 * k * pi / n + phi) + 1j * sin(2 * k * pi / n + phi) for k in range(n)]
 
 
-def rootsquadratic(a, b, c):
-    return (-b + math.sqrt(b ** 2 - 4 * a * c)) / 2 / a, \
-           (-b - math.sqrt(b ** 2 - 4 * a * c)) / 2 / a
-
-
 def colorcube(func="dfs"):
     if not func.startswith("hilbert"):
-        return list(eval("graph.grid3d(64, 64, 64)." + func + "((0,0,0))"))
+        return list(getattr(Graph.grid3d(64, 64, 64), func)((0, 0, 0)))
     else:
         return list(hilbert_3d(6))
 
@@ -395,7 +399,8 @@ def hilbert(n):
 
 
 def hilbert_3d(n):
-    if n == 6 and hilbert3d.hilbert3d2 is not None:
+    if n == 6:
+        import hilbert3d
         for i in hilbert3d.hilbert3d2():
             yield i
     else:

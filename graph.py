@@ -1,3 +1,4 @@
+from collections import deque
 import itertools
 
 import random
@@ -272,7 +273,7 @@ class Graph(object):
             parent = stack[-1]
             if self.dict[parent]:
                 children = sorted(self.dict[parent])
-                child = children[int(rand) * int(random.random() ** 1.1 * len(children))]
+                child = children[int(rand) * int(random.random() ** 8 * len(children))]
                 self.dict[parent].remove(child)
                 if child not in s:
                     if mode:
@@ -335,11 +336,10 @@ class Graph(object):
         l = [vert]
         s = {vert}
         while l:
-            parent = l.pop(int(rand) * int(random.random() ** 3 * len(l)))
-            children = self.dict[parent]
-            if rand:
-                random.shuffle(list(children))
-            for child in children:
+            parent = l.pop(int(rand) * int(random.random() ** 1 * len(l)))
+            children = list(self.dict[parent])
+            while children:
+                child = children.pop(int(rand) * int(random.random() ** 3 * len(children)))
                 if child not in s:
                     if mode:
                         yield (parent, child)
@@ -347,6 +347,26 @@ class Graph(object):
                         yield child
                     s.add(child)
                     l.append(child)
+
+    def dbfs(self, vert, rand=True, mode=False):
+        yield vert
+        s = {vert}
+        dq = deque([vert])
+        turn = True
+        while dq:
+            parent = dq.popleft() if turn else dq.popleft()
+            turn = not turn
+            children = list(self.dict[parent])
+            random.shuffle(children, rand)
+            for child in children:
+                if child not in s:
+                    if mode:
+                        yield (parent, child)
+                    else:
+                        yield child
+                    dq.appendleft(child) if turn else dq.append(child)
+                    turn = not turn
+                    s.add(child)
 
     @staticmethod
     def spanningtree(f, vert, rand=True):

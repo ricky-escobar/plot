@@ -12,6 +12,7 @@ from plot_help import Color, PlotData, ViewWindow, colorcube, hilbert, lp, direc
     writegif, closest, PYGAME_PIXEL
 
 
+
 try:
     import numpy as np
 except ImportError:
@@ -321,15 +322,15 @@ def zrotate(xlist, ylist, vw=ViewWindow(), segs=4, colorlist=None, auto=False, f
     return data.save(filename, save)
 
 
-def gridspanningtree(m, n, d=2, r=0, color=Color(255, 0, 0), g="grid", filename=None, treefunc="dfs", gif=False,
+def gridspanningtree(length, height, d=2, r=0, color=Color(255, 0, 0), g="grid", filename=None, treefunc="dfs", gif=False,
                      save=True):
     images = []
     if not isinstance(g, Graph):
-        (x, y) = (randint(0, m - 1), randint(0, n - 1))
-        g = getattr(Graph, g)(m, n).treefunc(treefunc, (x, y))
+        (x, y) = (randint(0, length - 1), randint(0, height - 1))
+        g = getattr(Graph, g)(length, height).treefunc(treefunc, (x, y))
     else:
         (x, y) = list(g.dict.keys)[0]
-    vw = ViewWindow(dimx=d * m + d - 1, dimy=d * n + d - 1)
+    vw = ViewWindow(dimx=d * length + d - 1, dimy=d * height + d - 1)
     data = PlotData(vw)
     color2 = 0.8 * color
     for v1 in g.dict:
@@ -350,25 +351,25 @@ def gridspanningtree(m, n, d=2, r=0, color=Color(255, 0, 0), g="grid", filename=
                 if gif:
                     images.append(data.save("", False))
     if filename is None:
-        filename = "gst " + str((m, n)) + " " + str(int(time()))
+        filename = "gst " + str((length, height)) + " " + str(int(time()))
     ret = data.save(filename, save)
     if gif:
         writegif(filename, images, 0.01)
     return ret
 
 
-def gridspanningtree2(m, n, d=2, r=0, g="grid", color=Color(255, 0, 0), filename=None, treefunc=None, func="dfs",
+def gridspanningtree2(length, height, d=2, r=0, g="grid", color=Color(255, 0, 0), filename=None, treefunc=None, func="dfs",
                       gif=False,
                       save=True):
     images = []
     if not isinstance(g, Graph):
-        g = getattr(Graph, g)(m, n)
+        g = getattr(Graph, g)(length, height)
     if treefunc is not None:
-        (x, y) = (randint(0, m - 1), randint(0, n - 1))
+        (x, y) = (randint(0, length - 1), randint(0, height - 1))
         g = g.treefunc(treefunc, (x, y))
-    (x, y) = (randint(0, m - 1), randint(0, n - 1))
+    (x, y) = (randint(0, length - 1), randint(0, height - 1))
     g = g.func(func, (x, y))
-    vw = ViewWindow(dimx=d * m + d - 1, dimy=d * n + d - 1)
+    vw = ViewWindow(dimx=d * length + d - 1, dimy=d * height + d - 1)
     data = PlotData(vw)
     color2 = 0.8 * color
     for p in g:
@@ -387,53 +388,54 @@ def gridspanningtree2(m, n, d=2, r=0, g="grid", color=Color(255, 0, 0), filename
         if gif:
             images.append(data.save("", False))
     if filename is None:
-        filename = "gst2 " + str((m, n)) + " " + str(time())
+        filename = "gst2 " + str((length, height)) + " " + str(time())
     ret = data.save(filename, save)
     if gif:
         writegif(filename, images, 0.01)
     return ret
 
 
-def graphpict(m, n, g="grid", treefunc="dfs", func="bfs", colorfunc="hilbert", gif=False, gifres=None, v0=None, v1=None,
-              rand=True, save=True):
+def graphpict(length, height, graphtype="grid", treefunc="dfs", func="bfs", colorfunc="hilbert", gif=False, gifres=None, v0=None, v1=None,
+              rand=True, save=True, scales=None):
     images = []
     clist = []
-    if isinstance(g, Graph):
-        area = len(g.dict)
+    if isinstance(graphtype, Graph):
+        area = len(graphtype.dict)
     else:
-        area = m * n
+        area = length * height
     if not colorfunc.startswith("rbow"):
         clist = colorcube(colorfunc)
     if func == "hilbert":
-        l = hilbert(int(ceil(log(max(m, n), 2))))
+        l = hilbert(int(ceil(log(max(length, height), 2))))
         gstr = "None"
     else:
-        if not isinstance(g, Graph):
-            gstr = g
-            g = getattr(Graph, g)(m, n)
+        if not isinstance(graphtype, Graph):
+            gstr = graphtype
+            graphtype = getattr(Graph, graphtype)(length, height)
         else:
             gstr = "Graph"
         if v0 is None:
-            v0 = choice(g.dict.keys())
+            v0 = choice(graphtype.dict.keys())
         if treefunc is not None:
             if v1 is None:
-                v1 = choice(g.dict.keys())
-            g = g.treefunc(treefunc, v1, rand)
-        l = g.func(func, v0, rand)
+                v1 = choice(graphtype.dict.keys())
+            graphtype = graphtype.treefunc(treefunc, v1, rand)
+            print "Computed spanning tree"
+        l = graphtype.func(func, v0, rand)
     if gif and gifres is None:
         gifres = ceil(area / 150.0)
-    vw = ViewWindow(dimx=m, dimy=n)
-    data = PlotData(vw)
+    vw = ViewWindow(dimx=length, dimy=height)
+    data = PlotData(vw, scales=scales)
     i = 0
     for p in l:
         if colorfunc.startswith("rbow"):
-            data.putpixel(p, globals()[colorfunc](2 * pi * i / area, 1))
+            data.putpixel(p, getattr(Color, colorfunc)(2 * pi * i / area, 1))
         else:
             data.putpixel(p, Color(*[c * 4 for c in clist[min(64 ** 3 * i / area, 64 ** 3 - 1)]]))
         if gif and (i + 1) % gifres == 0:
             images.append(data.save("", False))
         i += 1
-    filename = str((m, n)) + " " + gstr + " spanningtree" + str(treefunc) + " " + func + " " + colorfunc + " " + str(
+    filename = str((length, height)) + " " + gstr + " spanningtree" + str(treefunc) + " " + func + " " + colorfunc + " " + str(
         rand) + " " + str((v0, v1)) + " " + str(int(time()))
     ret = data.save(filename, save)
     if gif:
@@ -546,7 +548,7 @@ def juliazoom(f, vw, z0=0, factor=1.5, frames=20, n=50, duration=0.5, zmax=2, co
 
 
 def pict2graphpict(img, condition=None, treefunc="dfs", func="bfs", colorfunc="hilbert", gif=False, gifres=None,
-                   v0=None, v1=None, rand=True, save=True):
+                   v0=None, v1=None, rand=True, save=True, scales=None):
     if condition is None:
         condition = lambda x: x == 0
     if isinstance(img, (str, Image.Image)):
@@ -555,10 +557,10 @@ def pict2graphpict(img, condition=None, treefunc="dfs", func="bfs", colorfunc="h
                 img = Image.open(img)
             except IOError:
                 img = Image.open(direct + img)
-        (m, n) = img.size
+        (length, height) = img.size
         seq = img.getdata()
-        img = [[condition(seq[i * n + j]) for j in range(n)] for i in range(m)]
+        img = [[condition(seq[j * length + i]) for j in range(height)] for i in range(length)]
     else:
-        (m, n) = (len(img), len(img[0]))
+        (length, height) = (len(img), len(img[0]))
     g = Graph.gridmatrix(img)
-    return graphpict(m, n, g, treefunc, func, colorfunc, gif, gifres, v0, v1, rand, save)
+    return graphpict(length, height, g, treefunc, func, colorfunc, gif, gifres, v0, v1, rand, save, scales)

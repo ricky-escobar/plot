@@ -89,3 +89,37 @@ class Polynomial(object):
         for c in self.coeffs:
             val = z * val + c
         return val
+
+    def __rmul__(self, other):
+        return Polynomial(*[other * coeff for coeff in self.coeffs], var=self.var, exp=self.exp, mult=self.mult)
+
+    def __mul__(self, other):
+        try:
+            return Polynomial(*[sum(self.coeffs[j] * other.coeffs[i - j] for j in range(i + 1) if
+                                    j < len(self.coeffs) and i - j < len(other.coeffs)) for i in
+                                range((len(self.coeffs) - 1) + (len(other.coeffs) - 1) + 1)], var=self.var,
+                              exp=self.exp, mult=self.mult)
+        except AttributeError:
+            return other * self
+
+    def __radd__(self, other):
+        return Polynomial(*(self.coeffs[:-1] + (self.coeffs[-1] + other,)), var=self.var, exp=self.exp, mult=self.mult)
+
+    def __add__(self, other):
+        try:
+            l = max(len(self.coeffs), len(other.coeffs))
+            coeffs = [0] * l
+            for i in range(1, l + 1):
+                if i <= len(self.coeffs):
+                    coeffs[-i] = self.coeffs[-i]
+                if i <= len(other.coeffs):
+                    coeffs[-i] += other.coeffs[-i]
+            return Polynomial(*coeffs, var=self.var, exp=self.exp, mult=self.mult)
+        except AttributeError:
+            return other + self
+
+    def __pow__(self, power):
+        poly = Polynomial(1, var=self.var, exp=self.exp, mult=self.mult)
+        for i in range(power):
+            poly *= self
+        return poly
