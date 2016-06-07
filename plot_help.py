@@ -12,6 +12,7 @@ from graph import Graph
 
 
 
+
 direct = "C:\\Users\\Ricky\\Desktop\\"
 fileextension = '.png'
 PYGAME_PIXEL = False
@@ -400,9 +401,9 @@ def hilbert(n):
 
 def hilbert_3d(n):
     if n == 6:
-        import hilbert3d
-        for i in hilbert3d.hilbert3d2():
-            yield i
+        with open("h3d.csv") as h3d:
+            for line in h3d.readlines():
+                yield tuple(int(x) for x in line.split(','))
     else:
         s = 'X'
         for i in range(n):
