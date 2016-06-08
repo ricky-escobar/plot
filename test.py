@@ -6,7 +6,6 @@ from plot_help import vws, mkdir
 import plot
 
 
-
 def triangle(x, y):
     return 0 < y < 1.732 * (1 - abs(x))
 
@@ -120,15 +119,9 @@ def test9():
 
 mkdir()
 
-
-
 print "Execution began at " + asctime()
-#for i in range(10):
-#    plot.graphpict(925, 775, treefunc="dbfs", func="bfs")
 
-#plot.pict2graphpict("katy.png", gif=True, gifres=100)
-
-plot.graphpict(1700, 1000, treefunc="dfs", v0=(0, 0), v1=(0, 0))
+plot.graphpict(1920, 1080, treefunc=None, v0=(0, 0), v1=(0, 0))
 
 print "Execution ended at " + asctime()
 #

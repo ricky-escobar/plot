@@ -1,7 +1,7 @@
 from collections import deque
 import itertools
 
-import random
+import plot_random
 
 
 class Graph(object):
@@ -273,7 +273,7 @@ class Graph(object):
             parent = stack[-1]
             if self.dict[parent]:
                 children = sorted(self.dict[parent])
-                child = children[int(rand) * int(random.random() ** 8 * len(children))]
+                child = children[int(plot_random.random(rand) ** 15 * len(children))]
                 self.dict[parent].remove(child)
                 if child not in s:
                     if mode:
@@ -292,7 +292,7 @@ class Graph(object):
         while q:
             parent = q.pop(0)
             children = list(self.dict[parent])
-            random.shuffle(children, rand)
+            plot_random.shuffle(children, rand)
             for child in children:
                 if child not in s:
                     if mode:
@@ -310,8 +310,8 @@ class Graph(object):
             g0dict[child].discard(vert)
         while s:
             if rand:
-                parent = random.choice(s)
-                child = random.choice(g0dict[parent])
+                parent = plot_random.choice(s)
+                child = plot_random.choice(g0dict[parent])
                 g0dict[parent].discard(child)
             else:
                 parent = s.pop()
@@ -336,10 +336,10 @@ class Graph(object):
         l = [vert]
         s = {vert}
         while l:
-            parent = l.pop(int(rand) * int(random.random() ** 1 * len(l)))
+            parent = l.pop(int(plot_random.random(rand) ** 1 * len(l)))
             children = list(self.dict[parent])
             while children:
-                child = children.pop(int(rand) * int(random.random() ** 3 * len(children)))
+                child = children.pop(int(plot_random.random(rand) ** 3 * len(children)))
                 if child not in s:
                     if mode:
                         yield (parent, child)
@@ -357,7 +357,7 @@ class Graph(object):
             parent = dq.popleft() if turn else dq.popleft()
             turn = not turn
             children = list(self.dict[parent])
-            random.shuffle(children, rand)
+            plot_random.shuffle(children, rand)
             for child in children:
                 if child not in s:
                     if mode:
